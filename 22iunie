@@ -1,0 +1,40 @@
+import time
+import locale
+import requests
+from bs4 import BeautifulSoup
+
+
+def pcgaming(session, headers):
+    url = "https://www.emag.ro/sistem-pc-gaming-intel-alder-lake-i9-13900k-pana-la-5-8ghz-128gb-ddr5-hdd-8tb-si-ssd-2tb-m2-pcie-4-0-nvidia-rtx-4090-24gb-gddr6-carcasa-thermaltake-alien-licenta-windows-11-professional-mypc4748/pd/DR9YBRMBM/"
+    resp = session.get(url, headers=headers)
+    soup = BeautifulSoup(resp.text, "html.parser")
+    data = (
+        soup.select_one("p.product-new-price").text
+    )
+    return data
+
+def check_price(data):
+    price=data[0]
+    locale.setlocale(locale.LC_ALL, 'ro_RO.UTF-8')
+    cleaned_price = ''.join(filter(lambda x: x.isdigit() or x in [',', '.'], price))
+    converted_price = locale.atof(cleaned_price)
+    if (converted_price<40000):
+        print("GamingPC" , data)
+
+# main function to run everything
+def main():
+    headers = {
+        'User-Agent': 'Chrome/103.0.5060.134 '}
+
+    while (True):
+        s = requests.Session()
+        data = [
+            (pcgaming(s, headers)),
+        ]
+        check_price(data)
+        #print(data)
+        time.sleep(60)
+
+
+if __name__ == '__main__':
+    main()
