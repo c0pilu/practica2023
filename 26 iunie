@@ -1,0 +1,114 @@
+import time
+import locale
+from logging import root
+import threading
+import requests
+from bs4 import BeautifulSoup
+import smtplib
+import customtkinter
+lastprice=""
+url = ""
+is_monitoring = True
+#https://www.emag.ro/sistem-pc-gaming-intel-alder-lake-i9-13900k-pana-la-5-8ghz-128gb-ddr5-hdd-8tb-si-ssd-2tb-m2-pcie-4-0-nvidia-rtx-4090-24gb-gddr6-carcasa-thermaltake-alien-licenta-windows-11-professional-mypc4748/pd/DR9YBRMBM/
+
+def get_price(session, headers):
+    global url
+    resp = session.get(url, headers=headers)
+    soup = BeautifulSoup(resp.text, "html.parser")
+    data = (
+        soup.select_one("p.product-new-price").text
+    )
+    return data
+
+def check_price(data):
+    global lastprice
+    lastprice=int(entry3.get())
+    print(data)
+    price=data[0]
+    locale.setlocale(locale.LC_ALL, 'ro_RO.UTF-8')
+    cleaned_price = ''.join(filter(lambda x: x.isdigit() or x in [',', '.'], price))
+    converted_price = locale.atof(cleaned_price)
+    if (converted_price<lastprice):
+            sendmail()
+    lastprice = converted_price
+        #print("GamingPC" , data)
+
+def sendmail():
+    server = smtplib.SMTP('smtp.gmail.com',587)
+    server.ehlo()
+    server.starttls()
+    server.ehlo()
+    server.login('adytzzu20022@gmail.com','dhodgqdgxpjlezid')
+    subject='A scazut pretul'
+    body='Verifica linkul '+url
+    msg=f"Subject: {subject}\n\n{body}"
+    server.sendmail(
+        'adytzzu20022@gmail.com',
+        'copilu.stefan.adrian@gmail.com',
+        msg
+    )
+    print('EMAILUL A FOST TRIMIS')
+    server.quit()
+
+def main():
+    headers = {
+        'User-Agent': 'Chrome/103.0.5060.134 '}
+    time_s=int(entry2.get())
+    while is_monitoring:
+        s = requests.Session()
+        data = [
+            (get_price(s, headers)),
+            ]
+        check_price(data)
+        time.sleep(time_s)
+
+def start_monitoring():
+    global url
+    url=entry1.get()
+    monitor_thread = threading.Thread(target=main)
+    monitor_thread.start()
+
+
+def exit_application():
+    global is_monitoring
+    is_monitoring = False
+    root.destroy()
+
+def monitoring_window():
+    root2 = customtkinter.CTk()
+    root2.geometry("500x350")
+    frame = customtkinter.CTkFrame(master=root2)
+    frame.pack(pady=20, padx=60, fill="both", expand=True)
+    label = customtkinter.CTkLabel(master=frame, text="Product")
+    label.pack(pady=12, padx=10)
+    root2.mainloop()
+    start_monitoring()
+
+customtkinter.set_appearance_mode("dark")
+customtkinter.set_default_color_theme("dark-blue")
+
+root = customtkinter.CTk()
+root.geometry("500x350")
+frame = customtkinter.CTkFrame(master=root)
+frame.pack(pady=20, padx=60, fill="both", expand=True)
+label = customtkinter.CTkLabel(master=frame, text="Monitoring System")
+label.pack(pady=12, padx=10)
+
+entry1 = customtkinter.CTkEntry(master=frame, placeholder_text="URL")
+entry1.pack(pady=12, padx=10)
+
+entry3 = customtkinter.CTkEntry(master=frame, placeholder_text="PRET")
+entry3.pack(pady=14, padx=10)
+
+entry2 = customtkinter.CTkEntry(master=frame, placeholder_text="VERIFY TIME (s)")
+entry2.pack(pady=16, padx=10)
+
+button = customtkinter.CTkButton(master=frame, text="Monitorizeaza", command=monitoring_window)
+button.pack(pady=16, padx=10)
+
+root.protocol("WM_DELETE_WINDOW", exit_application)
+
+root.mainloop()
+
+# if __name__ == '__main__':
+#     main()
